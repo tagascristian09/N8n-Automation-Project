@@ -1,0 +1,541 @@
+{
+  "name": "RAG Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1BV-1hOtJnWuLVw1ypaNogvyzpzq7BsuA",
+          "mode": "list",
+          "cachedResultName": "Knowledge Base Document",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1BV-1hOtJnWuLVw1ypaNogvyzpzq7BsuA"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "id": "92cd1fa0-06ae-42e4-b2ef-b759a0dae73e",
+      "name": "File Created",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -944,
+        320
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "IrQFfJBMcCzb76tl",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "3e7a97ba-81c3-44af-aac8-605ea525352d",
+      "name": "Download file",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -576,
+        320
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "IrQFfJBMcCzb76tl",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "id": "007caf5c-890d-4bda-b0e9-a4b8b4e8f6e0",
+      "name": "Supabase Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.4,
+      "position": [
+        -224,
+        224
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "nKRzcdP1ZHfFDaop",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "b1e5b57c-31a0-4b02-b857-8c9e33afbb49",
+      "name": "Embeddings Google Gemini",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        160
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "YhPMkCI3bCZV1NMO",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "file_id",
+                "value": "={{ $json.id }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "ad594e73-9f97-4b9f-9ad9-e04d37b04164",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        -144,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "cf42e601-fd28-419f-b9f7-36b8e3ac98bb",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -944,
+        -80
+      ],
+      "webhookId": "d08f5d8f-e779-4a0e-a4ed-61c5c4af6b7c"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "555bd871-b11b-49b4-b276-c197019de400",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -688,
+        -288
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "id": "b5d0b61e-bf29-4b8c-b637-a005e6902a03",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        -704,
+        -48
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this tool for retrieve information from employee handbook.",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "topK": 6,
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "id": "b5d31492-f4a9-488f-bdd8-864f9e12084c",
+      "name": "Supabase Vector Store1",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.4,
+      "position": [
+        -576,
+        -48
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "nKRzcdP1ZHfFDaop",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1BV-1hOtJnWuLVw1ypaNogvyzpzq7BsuA",
+          "mode": "list",
+          "cachedResultName": "Knowledge Base Document",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1BV-1hOtJnWuLVw1ypaNogvyzpzq7BsuA"
+        },
+        "event": "fileUpdated",
+        "options": {}
+      },
+      "id": "9fef6873-3eba-4453-b407-78ba98a6a90e",
+      "name": "File Updated",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1088,
+        656
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "IrQFfJBMcCzb76tl",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "documents",
+        "filterType": "string",
+        "filterString": "=metadata->>file_id=like.*{{ $json.id }}"
+      },
+      "id": "c8770924-6f1e-4c3d-9919-d64d665312a5",
+      "name": "Delete a row",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -720,
+        656
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "nKRzcdP1ZHfFDaop",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('File Updated').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "689e440c-16d5-4ea1-947c-074a78456d3f",
+      "name": "Download file2",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -304,
+        656
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "IrQFfJBMcCzb76tl",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "id": "7fe959e7-fb5a-4b4b-8699-57c34b275b9c",
+      "name": "Supabase Vector Store2",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.4,
+      "position": [
+        -16,
+        656
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "nKRzcdP1ZHfFDaop",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "file_id",
+                "value": "={{ $json.metadata.file_id }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "92fddeb3-3f69-4073-9362-9f66df11dc8e",
+      "name": "Default Data Loader1",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        64,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2. Chat with the knowledge base\nA chat message goes to the AI Agent, which uses Gemini to respond. \nThe agent can query the Supabase vector store for relevant information. \nNo memory connection is shown.",
+        "height": 448,
+        "width": 1552,
+        "color": 6
+      },
+      "id": "9c70102e-004b-4f8c-9940-dad133b6069b",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1424,
+        -368
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1. Ingest new documents\nWhen a file is created in the Google Drive folder \"Knowledge Base Document\" (checked every minute), \nit is downloaded, split into a document, embedded with Google Gemini, \nand stored in the Supabase \"documents\" vector table. \nThe Drive file ID is saved as metadata (file_id).",
+        "height": 400,
+        "width": 1552,
+        "color": 5
+      },
+      "id": "258bb51c-671f-46bb-9e62-a25173b4b0ae",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1184,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3. Re-index updated documents\nWhen a file in the same Drive folder is updated, its old vectors are deleted from Supabase (matched by file_id metadata). \nThe new version is then downloaded, embedded with Gemini, and re-inserted, so answers never use stale content.",
+        "height": 432,
+        "width": 1568,
+        "color": 4
+      },
+      "id": "8002ffe5-5802-4697-a907-3f5043e301dd",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1152,
+        544
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "File Created": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Supabase Vector Store2",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File Updated": {
+      "main": [
+        [
+          {
+            "node": "Delete a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete a row": {
+      "main": [
+        [
+          {
+            "node": "Download file2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file2": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader1": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store2",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e91a840a-7b95-454c-9755-9bec102eed1d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e8d5d7654d3c1a6cfbda7606a27c17a7fbd92b13e22a3f897a08e8deeaac781e"
+  },
+  "nodeGroups": [],
+  "id": "v0sGSkiJlXFrnRnN",
+  "tags": []
+}
