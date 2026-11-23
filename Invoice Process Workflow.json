@@ -1,0 +1,460 @@
+{
+  "name": "Invoice Process Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Invoice Process\nA new invoice PDF is added to the Google Drive folder. \nThe file is downloaded and its text is extracted. \nAI reads the text and pulls out the invoice details. \nThe invoice is saved to Supabase. Each line item is then saved to Supabase and linked to that invoice.",
+        "height": 284,
+        "width": 328
+      },
+      "id": "2edbe3d7-e779-4a8a-8a81-897afc0375ab",
+      "name": "Process Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        -336
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1EifkRtvQ4YQYPAIKqtjZm7Eh-jLABNR6",
+          "mode": "list",
+          "cachedResultName": "Invoice Template",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1EifkRtvQ4YQYPAIKqtjZm7Eh-jLABNR6"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "id": "8e5cb0aa-f9f1-4926-9080-e2983a5d236f",
+      "name": "Google Drive Trigger",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "IrQFfJBMcCzb76tl",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.webViewLink }}",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "id": "65f75a54-3378-4b2b-baec-91fca65f5bc5",
+      "name": "Download file",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "IrQFfJBMcCzb76tl",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "87a47283-890a-4c5d-8c15-0cfe3a1c9064",
+      "name": "Extract from File",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "[\n  {\n    \"json\": {\n      \"company\": {\n        \"name\": \"<string>\",\n        \"address\": \"<string>\",\n        \"email\": \"<string>\",\n        \"phone\": \"<string>\"\n      },\n      \"billed_to\": {\n        \"name\": \"<string>\",\n        \"address\": \"<string>\"\n      },\n      \"invoice_details\": {\n        \"invoice_number\": \"<string>\",\n        \"invoice_date\": \"<string>\",\n        \"po_number\": \"<string>\",\n        \"currency\": \"<string>\"\n      },\n      \"line_items\": [\n        {\n          \"description\": \"<string>\",\n          \"quantity\": \"<number>\",\n          \"unit_price\": \"<string>\",\n          \"amount\": \"<string>\"\n        }\n      ],\n      \"summary\": {\n        \"subtotal\": \"<string>\",\n        \"tax\": \"<string>\",\n        \"total\": \"<string>\"\n      },\n      \"payment_terms_and_notes\": \"<string>\"\n    }\n  }\n]",
+        "options": {
+          "systemPromptTemplate": "You are an expert extraction algorithm.\nOnly extract relevant information from the text.\nIf you do not know the value of an attribute asked to extract, you may omit the attribute's value.\n\nremover $ sign and make it integer the unit_price,amount,subtotal,tax and total."
+        }
+      },
+      "id": "c4fbe273-bf17-413d-9c4e-5a00cee8d9d7",
+      "name": "Information Extractor",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-5",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {}
+      },
+      "id": "dc7d3fe2-de04-4011-a7c1-b181ceb38e86",
+      "name": "Anthropic Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        608,
+        208
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ef01599f-600e-4022-a2f7-f781d66faa42",
+              "name": "line_items",
+              "value": "={{ $('Information Extractor').item.json.output[0].json.line_items }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4ea099e4-eeb2-4059-9557-13ead88e3504",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "line_items",
+        "options": {}
+      },
+      "id": "548edff6-e1df-451f-b2c5-769601627cc3",
+      "name": "Split Out",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1.1,
+      "position": [
+        1648,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "cbc2e2c2-3056-4bca-b909-fadb4a0739c5",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1888,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "invoices",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "company_name",
+              "fieldValue": "={{ $json.output[0].json.company.name }}"
+            },
+            {
+              "fieldId": "company_address",
+              "fieldValue": "={{ $json.output[0].json.company.address }}"
+            },
+            {
+              "fieldId": "company_email",
+              "fieldValue": "={{ $json.output[0].json.company.email }}"
+            },
+            {
+              "fieldId": "company_phone",
+              "fieldValue": "={{ $json.output[0].json.company.phone }}"
+            },
+            {
+              "fieldId": "billed_to_name",
+              "fieldValue": "={{ $json.output[0].json.billed_to.name }}"
+            },
+            {
+              "fieldId": "billed_to_address",
+              "fieldValue": "={{ $json.output[0].json.billed_to.address }}"
+            },
+            {
+              "fieldId": "invoice_number",
+              "fieldValue": "={{ $json.output[0].json.invoice_details.invoice_number }}"
+            },
+            {
+              "fieldId": "invoice_date",
+              "fieldValue": "={{ $json.output[0].json.invoice_details.invoice_date }}"
+            },
+            {
+              "fieldId": "po_number",
+              "fieldValue": "={{ $json.output[0].json.invoice_details.po_number }}"
+            },
+            {
+              "fieldId": "currency",
+              "fieldValue": "={{ $json.output[0].json.invoice_details.currency }}"
+            },
+            {
+              "fieldId": "subtotal",
+              "fieldValue": "={{ $json.output[0].json.summary.subtotal }}"
+            },
+            {
+              "fieldId": "tax",
+              "fieldValue": "={{ $json.output[0].json.summary.tax }}"
+            },
+            {
+              "fieldId": "total",
+              "fieldValue": "={{ $json.output[0].json.summary.total }}"
+            },
+            {
+              "fieldId": "payment_terms_and_notes",
+              "fieldValue": "={{ $json.output[0].json.payment_terms_and_notes }}"
+            }
+          ]
+        }
+      },
+      "id": "1023735a-4a6d-4cff-96a9-2b91cdfd1062",
+      "name": "Save Invoice Detail",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "nKRzcdP1ZHfFDaop",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "invoice_line_items",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "invoice_id",
+              "fieldValue": "={{ $json.invoice_number }}"
+            },
+            {
+              "fieldId": "description",
+              "fieldValue": "={{ $json.description }}"
+            },
+            {
+              "fieldId": "quantity",
+              "fieldValue": "={{ $json.quantity }}"
+            },
+            {
+              "fieldId": "unit_price",
+              "fieldValue": "={{ $json.unit_price }}"
+            },
+            {
+              "fieldId": "amount",
+              "fieldValue": "={{ $json.amount }}"
+            }
+          ]
+        }
+      },
+      "id": "c3b8685a-d0e7-42c3-858d-feb07676ab8b",
+      "name": "Save Invoice Items",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2144,
+        16
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "nKRzcdP1ZHfFDaop",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  if (Array.isArray(item.json.line_items)) {\n    item.json.line_items = item.json.line_items.map((line) => ({\n      ...line,\n      invoice_number: $('Save Invoice Detail').first().json.id, // Example static field\n      // tax: (parseFloat(line.amount) * 0.12).toFixed(2) // Example calculated field\n    }));\n  }\n}\n\nreturn $input.all();"
+      },
+      "id": "fb7ff9ca-5958-42ac-8f46-cf4e0e60c319",
+      "name": "Returns the updated inputs.",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1424,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Save Invoice Detail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Returns the updated inputs.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Save Invoice Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Invoice Detail": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Invoice Items": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Returns the updated inputs.": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "9836aa83-88e9-447d-88ee-52abf95d91f4",
+  "meta": {
+    "instanceId": "e8d5d7654d3c1a6cfbda7606a27c17a7fbd92b13e22a3f897a08e8deeaac781e"
+  },
+  "nodeGroups": [],
+  "id": "0lAN6bfXSffVjpCh",
+  "tags": []
+}
