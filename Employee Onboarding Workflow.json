@@ -1,0 +1,625 @@
+{
+  "name": "Employee Onboarding Workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e698dc1a-1d60-4f17-bb68-d5a5813cb229",
+      "name": "When clicking ‘Execute workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://jsonplaceholder.typicode.com/users",
+        "options": {}
+      },
+      "id": "cd495146-1eb5-441a-a868-188e546ae18a",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const departments = [\n  \"Engineering\",\n  \"Marketing\",\n  \"Sales\",\n  \"Human Resources\",\n  \"Finance\",\n  \"Product Management\",\n  \"Customer Support\",\n  \"Legal\",\n  \"Operations\"\n];\n\n// Loop through all incoming items and assign a random department\nfor (const item of $input.all()) {\n  const randomIndex = Math.floor(Math.random() * departments.length);\n  item.json.department = departments[randomIndex];\n}\n\nreturn $input.all();"
+      },
+      "id": "ef31d490-b048-47aa-916a-24f4708acfcc",
+      "name": "Code in JavaScript",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "users",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $json.name }}"
+            },
+            {
+              "fieldId": "username",
+              "fieldValue": "={{ $json.username }}"
+            },
+            {
+              "fieldId": "email",
+              "fieldValue": "={{ $json.email }}"
+            },
+            {
+              "fieldId": "address",
+              "fieldValue": "={{ $json.address.street }} {{ $json.address.suite }} {{ $json.address.city }}"
+            },
+            {
+              "fieldId": "phone",
+              "fieldValue": "={{ $json.phone }}"
+            },
+            {
+              "fieldId": "website",
+              "fieldValue": "={{ $json.website }}"
+            },
+            {
+              "fieldId": "company",
+              "fieldValue": "={{ $json.company.name }}"
+            },
+            {
+              "fieldId": "department",
+              "fieldValue": "={{ $json.department }}"
+            }
+          ]
+        }
+      },
+      "id": "f1feb523-4a80-47e8-a8c7-0ccb8606489c",
+      "name": "Insert New Employee Record",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        16
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "nKRzcdP1ZHfFDaop",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "common_item_requests",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "department",
+              "keyValue": "={{ $json.department }}"
+            }
+          ]
+        }
+      },
+      "id": "21fdaef7-59e4-4e92-b3b1-8c90266d262d",
+      "name": "Get a  Common Item Request",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        16
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "nKRzcdP1ZHfFDaop",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "id",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "id": "1bb67203-e8ec-4f79-ac93-c9e0aaa7fc23",
+      "name": "Split Out",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1.1,
+      "position": [
+        1552,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "03328fc4-aed3-42db-a2ed-c2b67446a947",
+      "name": "Loop Over Employee Information",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        544,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6b9494c7-ea72-491a-8c49-8d9a00693d86",
+              "name": "common_item_request_id",
+              "value": "={{ $('Get a  Common Item Request').item.json.id }}",
+              "type": "number"
+            },
+            {
+              "id": "da3e0146-2399-4fec-8b3b-7baf039478cb",
+              "name": "employee_id",
+              "value": "={{ $('Insert New Employee Record').item.json.id }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "92e1ab4d-580b-435d-858a-05dd94c0139c",
+      "name": "Edit Fields1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2064,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "item_requests_dup",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $json.employee_id }}"
+            },
+            {
+              "fieldId": "common_item_request_id",
+              "fieldValue": "={{ $json.common_item_request_id }}"
+            }
+          ]
+        }
+      },
+      "id": "e89c21c1-4fe6-48d3-aa50-e67ff37706e8",
+      "name": "Insert New Record of Request Item",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2272,
+        32
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "nKRzcdP1ZHfFDaop",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": "={{ $node['Loop Over Common Item Request'].context[\"done\"] }}"
+        }
+      },
+      "id": "90b3b6c9-cc1e-4682-8eb5-e9da0120232a",
+      "name": "Loop Over Common Item Request",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1840,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Employee Seeding Flow\nFetches sample users, assigns each a random department, saves them to Supabase, and creates a request record for every common IT item of that department.",
+        "height": 304,
+        "width": 288,
+        "color": 4
+      },
+      "id": "42ded1d4-2507-4c12-a452-cf8c4f670dc2",
+      "name": "Note: Employee Seeding Flow",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## IT Request Approval Flow\nWhen a new item request arrives via webhook, emails IT support for approval and marks the request as Approved in Supabase once they respond.",
+        "height": 256,
+        "color": 5
+      },
+      "id": "6e57f862-d3c7-400e-93a1-7cfa93f60bb4",
+      "name": "Note: IT Request Approval Flow",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "get-new-item-request",
+        "options": {}
+      },
+      "id": "26e5a5e6-0c54-4c6a-bf73-8ae053c05a92",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        32,
+        576
+      ],
+      "webhookId": "75625b7d-3e28-4b93-aeb5-5673241fb0eb"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "users",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.body.record.user_id }}"
+            }
+          ]
+        }
+      },
+      "id": "8d5e641c-419e-4fe5-b808-f9801c3fd097",
+      "name": "Get a row",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        240,
+        576
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "nKRzcdP1ZHfFDaop",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "common_item_requests",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('Webhook').item.json.body.record.common_item_request_id }}"
+            }
+          ]
+        }
+      },
+      "id": "53d7b8ae-1f54-4210-a810-dbb90965f0b0",
+      "name": "Get a row1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        464,
+        576
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "nKRzcdP1ZHfFDaop",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8a87b2af-9ed1-43df-8ecd-9a47643e4f16",
+              "name": "support_email",
+              "value": "ctagas09automation@gmail.com",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c4d4d65e-7009-429f-a068-81d1fb1d9557",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        688,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "={{ $json.support_email }}",
+        "subject": "=New Employee Onboarding IT Request: {{ $('Get a row').item.json.name }}",
+        "message": "=Hi IT Support Team,\n\nI would like to request IT setup and equipment for a new employee joining our team. Here are the details:\n\nEmployee Name: {{ $('Get a row').item.json.name }}\n\nJob Title / Department: {{ $('Get a row1').item.json.department }}\n\nStart Date: [YYYY-MM-DD]\n\nWork Location: {{ $('Get a row1').item.json.department }} Department\n\nItem Name: {{ $('Get a row1').item.json.item_name }}\n\nCategory: {{ $('Get a row1').item.json.category }}\n\nDescription: {{ $('Get a row1').item.json.description }}\n\nThank you for your help!\n\nBest regards,\n123Corp inc.\nAutomation\nX123-23451-123\n",
+        "approvalOptions": {
+          "values": {}
+        },
+        "options": {}
+      },
+      "id": "edead711-91b5-4496-9582-0b094283d21c",
+      "name": "Send message and wait for response",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        576
+      ],
+      "webhookId": "2ca746b2-1be6-4fd8-8fec-b4b6d7901038",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "kp3IqKx3PAoZjAGx",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "item_requests",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Webhook').item.json.body.record.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "Approved"
+            }
+          ]
+        }
+      },
+      "id": "79126656-40ab-4580-a953-47cf642b8e83",
+      "name": "Update a row",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        576
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "nKRzcdP1ZHfFDaop",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "“Why This Workflow Matters”\n\nAutomates new-hire IT onboarding: every employee is recorded and matched to the equipment their department needs, and IT approves each request by email. This cuts manual work and delays, keeps onboarding consistent, gives new hires what they need on day one, and leaves an auditable trail of requests and approvals.",
+        "height": 176,
+        "width": 480
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        -528
+      ],
+      "id": "6ca756bd-d552-48ba-84a9-8cb5baa9255a",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Employee Information",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Insert New Employee Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert New Employee Record": {
+      "main": [
+        [
+          {
+            "node": "Get a  Common Item Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a  Common Item Request": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Common Item Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Employee Information": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Insert New Record of Request Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert New Record of Request Item": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Common Item Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Common Item Request": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Employee Information",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Get a row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "Update a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5ab4d968-62a9-4b8a-bba8-db3a419eec9d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e8d5d7654d3c1a6cfbda7606a27c17a7fbd92b13e22a3f897a08e8deeaac781e"
+  },
+  "nodeGroups": [],
+  "id": "i7Kq2Gq1HrF5UJma",
+  "tags": []
+}
